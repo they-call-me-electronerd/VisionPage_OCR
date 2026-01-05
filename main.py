@@ -37,7 +37,7 @@ class PageVisionOCR:
         self.auto_speak = True  # Auto-speak when new text is detected
         self.show_processed = False  # Toggle to show preprocessed view
         self.frame_count = 0
-        self.ocr_interval = 15  # Perform OCR every N frames for performance
+        self.ocr_interval = 10  # Perform OCR every N frames for performance (faster processing)
         
         # Document detection state
         self.document_detected = False
@@ -157,17 +157,17 @@ class PageVisionOCR:
                 # Reset OCR buffer if no document detected for too long
                 if self.frames_without_document > self.max_frames_without_document:
                     self.ocr_engine.text_buffer = []
-                    print("\n⚠ No document detected - OCR buffer reset")
+                    # Don't print reset message every time
             
-            # Only proceed with OCR if document is detected
-            if has_document:
+            # Proceed with OCR even if document detection is uncertain (more lenient)
+            if True:  # Changed from 'if has_document:' to allow OCR even without perfect document detection
                 # Preprocess the frame
                 processed = self.preprocessor.preprocess(frame)
                 
                 # LAYER 2: Text Density Check - Verify there's meaningful content
                 text_density = self.preprocessor.get_text_density(processed)
                 
-                if 0.05 < text_density < 0.5:  # Reasonable text density range
+                if 0.01 < text_density < 0.7:  # Wider text density range for better detection
                     # Extract text with bounding boxes
                     boxes = self.ocr_engine.extract_text_with_boxes(processed)
                     
