@@ -15,8 +15,8 @@ class ImagePreprocessor:
         self.c_value = 2           # Adaptive threshold constant
         
         # Document detection parameters
-        self.min_contour_area = 50000  # Minimum area for document detection
-        self.max_contour_area_ratio = 0.9  # Maximum ratio of frame area
+        self.min_contour_area = 10000  # Minimum area for document detection (lowered for better detection)
+        self.max_contour_area_ratio = 0.95  # Maximum ratio of frame area
         
     def preprocess(self, frame):
         """
