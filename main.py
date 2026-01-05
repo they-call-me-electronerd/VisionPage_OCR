@@ -190,7 +190,8 @@ class PageVisionOCR:
                                 print("🔊 Auto-speaking detected text...")
                                 self.tts.speak(full_text, blocking=False)
                         else:
-                            print("⚠ Text not stable enough (noise filtered)")
+                            if full_text:  # Show what text was detected but not stable
+                                print(f"⚠ Text not stable enough: '{full_text}' (needs {self.ocr_engine.stability_threshold}/{self.ocr_engine.buffer_size} frames)")
                     else:
                         if full_text:
                             print(f"⚠ Text rejected as noise: '{full_text}'")
