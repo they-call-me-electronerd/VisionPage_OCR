@@ -25,11 +25,11 @@ class OCREngine:
         
         # Stability tracking - text must appear in multiple consecutive frames
         self.text_buffer = []  # Store recent text detections
-        self.buffer_size = 3   # Number of frames to check for consistency
-        self.stability_threshold = 2  # Minimum consistent appearances
+        self.buffer_size = 2   # Number of frames to check for consistency (reduced for faster detection)
+        self.stability_threshold = 1  # Minimum consistent appearances (very lenient)
         
         # Meaningful text validation
-        self.min_text_length = 3  # Minimum characters for valid text
+        self.min_text_length = 2  # Minimum characters for valid text (lowered)
         self.min_word_length = 2  # Minimum length for a word to be valid
         self.min_words = 1  # Minimum number of words required
         
@@ -238,8 +238,8 @@ class OCREngine:
         
         alnum_ratio = alnum_count / total_non_space
         
-        # Require at least 60% alphanumeric characters
-        if alnum_ratio < 0.6:
+        # Require at least 50% alphanumeric characters (lowered for better detection)
+        if alnum_ratio < 0.5:
             return False
         
         # Reject if it's all digits or all special characters
@@ -286,7 +286,7 @@ class OCREngine:
         similar_count = 0
         for buffered_text in self.text_buffer:
             similarity = self.calculate_similarity(current_text, buffered_text)
-            if similarity >= 0.7:  # 70% similarity threshold
+            if similarity >= 0.6:  # 60% similarity threshold (lowered for better detection)
                 similar_count += 1
         
         # Text is stable if it appears consistently
