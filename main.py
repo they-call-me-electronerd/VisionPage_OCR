@@ -39,6 +39,11 @@ class PageVisionOCR:
         self.frame_count = 0
         self.ocr_interval = 15  # Perform OCR every N frames for performance
         
+        # Document detection state
+        self.document_detected = False
+        self.frames_without_document = 0
+        self.max_frames_without_document = 10  # Reset buffer if no document for N frames
+        
         print("✓ All components initialized successfully!\n")
     
     def display_instructions(self):
