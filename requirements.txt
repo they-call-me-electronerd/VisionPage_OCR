@@ -1,0 +1,15 @@
+# PageVision OCR - Requirements
+# Install using: pip install -r requirements.txt
+
+# Computer Vision
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# OCR Engine
+pytesseract>=0.3.10
+
+# Text-to-Speech
+pyttsx3>=2.90
+
+# Additional utilities
+Pillow>=10.0.0
