@@ -264,7 +264,7 @@ This project is licensed under the MIT License. Feel free to use it for personal
 
 ## 👨‍💻 Author
 
-Built with ❤️ for accessibility and innovation.
+Built by sakshyam Bastakoti for accessibility and innovation.
 
 ## 🙏 Acknowledgments
 
