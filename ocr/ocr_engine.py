@@ -223,7 +223,7 @@ class OCREngine:
             return False
         
         # Check for valid words (at least min_word_length characters)
-        valid_words = [w for w in words if len(w) >= self.min_word_length]
+        valid_words = [w for w in words if len(w) >= self.min_word_length and w.isalpha()]
         
         if len(valid_words) < self.min_words:
             return False
@@ -245,6 +245,24 @@ class OCREngine:
         # Reject if it's all digits or all special characters
         if text.replace(' ', '').isdigit():
             return len(text.replace(' ', '')) > 3  # Allow long numbers
+        
+        # Check for too many consecutive special characters (sign of noise)
+        special_count = 0
+        max_consecutive_special = 0
+        for char in text:
+            if not char.isalnum() and char not in ' .,!?;:-()[]"\'\n':
+                special_count += 1
+                max_consecutive_special = max(max_consecutive_special, special_count)
+            else:
+                special_count = 0
+        
+        if max_consecutive_special > 3:  # Too many weird characters in a row
+            return False
+        
+        # Check ratio of actual letters vs total characters
+        letter_count = sum(c.isalpha() for c in text)
+        if letter_count / len(text) < 0.3:  # At least 30% should be letters
+            return False
         
         return True
     
