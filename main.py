@@ -131,7 +131,7 @@ class PageVisionOCR:
     
     def process_frame(self, frame):
         """
-        Process a single frame for OCR
+        Process a single frame for OCR with multi-layer validation
         
         Args:
             frame: Input frame from camera
@@ -144,27 +144,58 @@ class PageVisionOCR:
         
         # Perform OCR at intervals for better performance
         if self.frame_count % self.ocr_interval == 0:
-            # Preprocess the frame
-            processed = self.preprocessor.preprocess(frame)
+            # LAYER 1: Document Detection - Check if a page/document is present
+            has_document, document_contour = self.preprocessor.detect_document(frame)
+            self.document_detected = has_document
             
-            # Extract text with bounding boxes
-            boxes = self.ocr_engine.extract_text_with_boxes(processed)
+            # Draw document boundary if detected
+            if has_document and document_contour is not None:
+                cv2.drawContours(display_frame, [document_contour], -1, (0, 255, 0), 3)
+                self.frames_without_document = 0
+            else:
+                self.frames_without_document += 1
+                # Reset OCR buffer if no document detected for too long
+                if self.frames_without_document > self.max_frames_without_document:
+                    self.ocr_engine.text_buffer = []
+                    print("\n⚠ No document detected - OCR buffer reset")
             
-            # Draw bounding boxes
-            display_frame = self.ocr_engine.draw_boxes(display_frame, boxes)
-            
-            # Extract full text
-            full_text = self.ocr_engine.extract_text(processed)
-            
-            # Update current text if not empty
-            if full_text:
-                self.current_text = full_text
-                print(f"\n📄 Detected text: {full_text}")
+            # Only proceed with OCR if document is detected
+            if has_document:
+                # Preprocess the frame
+                processed = self.preprocessor.preprocess(frame)
                 
-                # Auto-speak if enabled and text is new
-                if self.auto_speak and self.ocr_engine.is_new_text(full_text):
-                    print("🔊 Auto-speaking detected text...")
-                    self.tts.speak(full_text, blocking=False)
+                # LAYER 2: Text Density Check - Verify there's meaningful content
+                text_density = self.preprocessor.get_text_density(processed)
+                
+                if 0.05 < text_density < 0.5:  # Reasonable text density range
+                    # Extract text with bounding boxes
+                    boxes = self.ocr_engine.extract_text_with_boxes(processed)
+                    
+                    # Draw bounding boxes
+                    display_frame = self.ocr_engine.draw_boxes(display_frame, boxes)
+                    
+                    # Extract full text
+                    full_text = self.ocr_engine.extract_text(processed)
+                    
+                    # LAYER 3: Meaningful Text Validation
+                    if full_text and self.ocr_engine.is_meaningful_text(full_text):
+                        # LAYER 4: Stability Check - Text must be consistent across frames
+                        if self.ocr_engine.is_stable_text(full_text):
+                            # Update current text
+                            self.current_text = full_text
+                            print(f"\n📄 Detected STABLE text: {full_text}")
+                            
+                            # LAYER 5: New Text Check - Only speak if text is new
+                            if self.auto_speak and self.ocr_engine.is_new_text(full_text):
+                                print("🔊 Auto-speaking detected text...")
+                                self.tts.speak(full_text, blocking=False)
+                        else:
+                            print("⚠ Text not stable enough (noise filtered)")
+                    else:
+                        if full_text:
+                            print(f"⚠ Text rejected as noise: '{full_text}'")
+                else:
+                    print(f"⚠ Invalid text density: {text_density:.3f} (likely noise or no text)")
         
         # Add info panel
         display_frame = self.create_info_panel(display_frame)
