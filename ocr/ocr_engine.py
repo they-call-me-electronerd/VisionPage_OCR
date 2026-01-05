@@ -23,8 +23,18 @@ class OCREngine:
         self.last_text = ""
         self.last_detection_time = None
         
+        # Stability tracking - text must appear in multiple consecutive frames
+        self.text_buffer = []  # Store recent text detections
+        self.buffer_size = 3   # Number of frames to check for consistency
+        self.stability_threshold = 2  # Minimum consistent appearances
+        
+        # Meaningful text validation
+        self.min_text_length = 3  # Minimum characters for valid text
+        self.min_word_length = 2  # Minimum length for a word to be valid
+        self.min_words = 1  # Minimum number of words required
+        
         # Configure Tesseract path (uncomment and modify if needed)
-        # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         
         # Tesseract configuration for better accuracy
         self.config = f'--oem 3 --psm 6 -l {self.language}'
@@ -192,3 +202,92 @@ class OCREngine:
         self.language = language
         self.config = f'--oem 3 --psm 6 -l {self.language}'
         print(f"✓ OCR language changed to: {language}")
+    
+    def is_meaningful_text(self, text):
+        """
+        Validate if extracted text is meaningful and not random noise
+        
+        Args:
+            text (str): Text to validate
+            
+        Returns:
+            bool: True if text appears meaningful, False otherwise
+        """
+        if not text or len(text) < self.min_text_length:
+            return False
+        
+        # Split into words
+        words = text.split()
+        
+        if len(words) < self.min_words:
+            return False
+        
+        # Check for valid words (at least min_word_length characters)
+        valid_words = [w for w in words if len(w) >= self.min_word_length]
+        
+        if len(valid_words) < self.min_words:
+            return False
+        
+        # Check if text has reasonable character composition
+        # Should have more alphanumeric than special characters
+        alnum_count = sum(c.isalnum() for c in text)
+        total_non_space = len(text.replace(' ', ''))
+        
+        if total_non_space == 0:
+            return False
+        
+        alnum_ratio = alnum_count / total_non_space
+        
+        # Require at least 60% alphanumeric characters
+        if alnum_ratio < 0.6:
+            return False
+        
+        # Reject if it's all digits or all special characters
+        if text.replace(' ', '').isdigit():
+            return len(text.replace(' ', '')) > 3  # Allow long numbers
+        
+        return True
+    
+    def add_to_buffer(self, text):
+        """
+        Add text detection to buffer for stability tracking
+        
+        Args:
+            text (str): Detected text
+        """
+        self.text_buffer.append(text)
+        
+        # Keep buffer at fixed size
+        if len(self.text_buffer) > self.buffer_size:
+            self.text_buffer.pop(0)
+    
+    def is_stable_text(self, current_text):
+        """
+        Check if text appears consistently across multiple frames
+        This prevents random noise from being spoken
+        
+        Args:
+            current_text (str): Current detected text
+            
+        Returns:
+            bool: True if text is stable across frames
+        """
+        if not current_text:
+            return False
+        
+        # Add current text to buffer
+        self.add_to_buffer(current_text)
+        
+        # Need enough frames in buffer
+        if len(self.text_buffer) < self.buffer_size:
+            return False
+        
+        # Count how many times similar text appears in buffer
+        similar_count = 0
+        for buffered_text in self.text_buffer:
+            similarity = self.calculate_similarity(current_text, buffered_text)
+            if similarity >= 0.7:  # 70% similarity threshold
+                similar_count += 1
+        
+        # Text is stable if it appears consistently
+        return similar_count >= self.stability_threshold
