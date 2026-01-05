@@ -89,7 +89,7 @@ class PageVisionOCR:
         
         # Create semi-transparent overlay
         overlay = frame.copy()
-        cv2.rectangle(overlay, (10, 10), (width - 10, 150), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (10, 10), (width - 10, 180), (0, 0, 0), -1)
         frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
         
         # Add status information
@@ -98,6 +98,13 @@ class PageVisionOCR:
         
         self.add_overlay_text(frame, "PageVision OCR - Real-time Text Reader", 
                             (20, y_offset), 0.7, (0, 255, 255), 2)
+        y_offset += line_height
+        
+        # Document detection status
+        doc_status = "DETECTED" if self.document_detected else "NO PAGE"
+        doc_color = (0, 255, 0) if self.document_detected else (0, 0, 255)
+        self.add_overlay_text(frame, f"Document: {doc_status}", 
+                            (20, y_offset), 0.5, doc_color, 1)
         y_offset += line_height
         
         status = "ON" if self.auto_speak else "OFF"
